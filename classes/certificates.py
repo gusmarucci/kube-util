@@ -3,7 +3,7 @@
 #  certificates.py
 #
 #  Copyright 2024
-#  Autor......: Gustavo Marucci <gustavo.marucci@l5.com.br>
+#  Autor......: Gustavo Marucci <gustavo@marucciviana.com.br>
 #  Data.......: 07/11/2024
 #  Descrição..: Controle manutenção dos certificados digitais necessários 
 #               para o funcionamento dos serviços do Kubernetes
@@ -11,7 +11,8 @@
 #
 import 	os
 import	re
-import sys
+import 	sys
+import	ipaddress
 from 	OpenSSL							import crypto
 from 	classes.varglobal				import Global
 
@@ -336,13 +337,6 @@ class Certificates(object):
 		if not self.gen_certificate("ca"):
 			sys.exit(5)
 		print("- Certificado gerado!\n")
-		print("Certificado da Autoridade Certificadora gerado com sucesso!")
-
-
-
-			
-
-		
 
 	
 	def API(self, new: bool = False) -> None:
@@ -351,7 +345,52 @@ class Certificates(object):
 		Create or update API sign and certificates
 		
 		'''
-		print("Certificate API")
+		iplist = []
+
+		try:
+			cidr 			= 	ipaddress.ip_network(Global.config.values.cidr.service)
+			api_server_ip 	= cidr[1]
+
+			iplist.append(api_server_ip)
+
+		except Exception as e:
+			print("Não foi possível determinar o IP do Kubernetes API Server")
+			sys.exit(5)
+
+		# Verify the key
+		kube_apiserver_key = os.path.join(self.pkey_path, "kube-apiserver.key")
+		if not os.path.exists(kube_apiserver_key):
+			print("Vamos primeiro criar uma chave privada para o serviço API Server...")
+			if not self.gen_pkey("kube-apiserver"):
+				sys.exit(5)
+			print("Chave privada do serviço API Server gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para serviço API Server...")
+		
+		# IP list
+		for item in Global.config.values.master_nodes:
+			iplist.append(item.ip)
+
+		try:
+			iplist.append(Global.config.values.loadbalancer.ip)
+		except:
+			pass
+		
+		extensions = self.get_extensions("serverAuth", iplist)
+		if not self.gen_csr(
+			name 		= "kube-apiserver", 
+			subject		= "/CN=kube-apiserver/O=Kubernetes",
+			extensions	= extensions
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando um certificado para serviço API Server...")
+		if not self.gen_certificate("kube-apiserver", extensions):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
 
 	
 	def admin(self, new: bool = False) -> None:
@@ -360,7 +399,28 @@ class Certificates(object):
 		Create or update admin user sign and certificates
 		
 		'''
-		print("Certificate admin")
+		# Verify the key
+		admin_key = os.path.join(self.pkey_path, "admin.key")
+		if not os.path.exists(admin_key):
+			print("Vamos primeiro criar uma chave privada para o usuário admin...")
+			if not self.gen_pkey("admin"):
+				sys.exit(5)
+			print("Chave privada do usuário admin gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para o certificado do usuário admin...")
+		if not self.gen_csr(
+			name 		= "admin", 
+			subject		= "/CN=admin/O=system:masters"
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando o certificado do usuário admin...")
+		if not self.gen_certificate("admin"):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
 
 	
 	def controller_manager(self, new: bool = False) -> None:
@@ -369,7 +429,28 @@ class Certificates(object):
 		Create or update Controller Manager service user sign and certificates
 		
 		'''
-		print("Certificate Controller Manager")
+		# Verify the key
+		cm_key = os.path.join(self.pkey_path, "kube-controller-manager.key")
+		if not os.path.exists(cm_key):
+			print("Vamos primeiro criar uma chave privada para o serviço Controller Manager...")
+			if not self.gen_pkey("kube-controller-manager"):
+				sys.exit(5)
+			print("Chave privada do serviço Controller Manager gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para o certificado do serviço Controller Manager...")
+		if not self.gen_csr(
+			name 		= "kube-controller-manager", 
+			subject		= "/CN=system:kube-controller-manager/O=system:kube-controller-manager"
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando o certificado do serviço Controller Manager...")
+		if not self.gen_certificate("kube-controller-manager"):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
 
 	
 	def proxy(self, new: bool = False) -> None:
@@ -391,13 +472,3 @@ class Certificates(object):
 
 
 
-	"""
-	Load balancer?
-	sim - Nome (se não detectar, pedir o IP)
-
-	Quantos Master?
-	Qual o nome deles?
-	
-	Se não detectar o IP por DNS perguntar cada um
-
-	"""

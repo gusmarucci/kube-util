@@ -3,7 +3,7 @@
 #  installer.py
 #
 #  Copyright 2024
-#  Autor......: Gustavo Marucci <gustavo.marucci@l5.com.br>
+#  Autor......: Gustavo Marucci <gustavo@marucciviana.com.br>
 #  Data.......: 07/11/2024
 #  Descrição..: Controle manutenção dos certificados digitais necessários 
 #               para o funcionamento dos serviços do Kubernetes

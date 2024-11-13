@@ -3,7 +3,7 @@
 #  http.py
 #
 #  Copyright 2024
-#  Author.......: Gustavo Marucci <gustavo.marucci@l5.com.br>
+#  Author.......: Gustavo Marucci <gustavo@marucciviana.com.br>
 #  Date.........: 03/07/2024
 #  Description..: Classe para envio de requisições HTTP
 #

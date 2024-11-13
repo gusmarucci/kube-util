@@ -3,7 +3,7 @@
 #  argparser.py
 #
 #  Copyright 2024
-#  Author.......: Gustavo Marucci <gustavo.marucci@l5.com.br>
+#  Author.......: Gustavo Marucci <gustavo@marucciviana.com.br>
 #  Date.........:  11/11/2024
 #  Description..: Classe para envio de requisições HTTP
 #

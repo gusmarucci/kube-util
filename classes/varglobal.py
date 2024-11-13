@@ -3,7 +3,7 @@
 #  varglobal.py
 #
 #  Copyright 2024
-#  Autor......: Gustavo Marucci <gustavo.marucci@l5.com.br>
+#  Autor......: Gustavo Marucci <gustavo@marucciviana.com.br>
 #  Data.......: 07/11/2024
 #  Descrição..: Variáveis globais e instâncias singleton
 #
