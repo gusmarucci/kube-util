@@ -479,6 +479,10 @@ class Config(object):
 						continue
 					
 					break
+			
+			self.values.loadbalancer = InstanceMachine(
+				hostname=loadbalancer,ip=loadbalancer_ip
+			)
 				
 
 		# Nome das instâncias Master:
