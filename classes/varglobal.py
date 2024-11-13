@@ -10,5 +10,6 @@
 
 
 class Global:
-	commands	= None							# ArgumentParser objects
-	config		= None							# Configuration
+	base_path: str	= None							# Absolute path of the script
+	commands: dict	= None							# ArgumentParser objects
+	config			= None							# Configuration Object

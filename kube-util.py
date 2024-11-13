@@ -11,6 +11,7 @@
 #
 
 # Force UTF-8 output
+import	os
 import 	sys
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
@@ -24,8 +25,14 @@ if version.major < 3 or version.minor < 12:
 # Global imports
 from 	classes.argparser		import ArgParser
 from	classes.config			import Config
+from	classes.varglobal		import Global
 
 if __name__ == "__main__":
+
+	# Absolute path
+	Global.base_path    = os.path.dirname(os.path.abspath(__file__))
+
+	print(Global.base_path)
 	
 	# Install de configuration
 	Config.install()

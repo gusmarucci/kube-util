@@ -228,7 +228,7 @@ class Config(object):
 		
 		lb = "Sim" if hasattr(self.values, "loadbalancer") and self.values.loadbalancer is not None else "Não"
 		
-		print(f"*** Configurações salvas do cluster \"{self.values.name}\"\n")
+		print(f"\n*** Configurações salvas do cluster \"{self.values.name}\" ***\n")
 		print(f"Nome do cluster ................: {self.values.name}")
 		print(f"Load balancer ..................: {lb}")
 		print(f"Quantidade de Master nodes .....: {len(self.values.master_nodes)}")
@@ -325,7 +325,7 @@ class Config(object):
 			return socket.gethostbyname(hostname)
 		
 		except Exception as e:
-			print(f"Não consegui obter o endereço de \"{hostname}\": {str(e)}")
+			print(f"Não consegui obter o endereço de \"{hostname}\"")
 			return None
 		
 
@@ -340,7 +340,7 @@ class Config(object):
 			return True 
 		
 		except Exception as e: 
-			print(f"Não me parece que {ip} se pareça com um endereço de IP. Erro: {str(e)}")
+			print(f"Não me parece que {ip} se pareça com um endereço de IP.")
 			return False
 		
 		
@@ -354,7 +354,7 @@ class Config(object):
 			ipaddress.ip_network(cidr, strict=False) 
 			return True 
 		except Exception as e: 
-			print(f"Não me parece que {cidr} se pareça com uma rede válida. Erro: {str(e)}")
+			print(f"Não me parece que {cidr} se pareça com uma rede válida.")
 			return False
 		
 	
