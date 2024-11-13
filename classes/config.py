@@ -201,7 +201,7 @@ class Config(object):
 			if hasattr(self.values, 'loadbalancer') and self.values.loadbalancer is not None:
 				data['spec']['loadbalancer'] = dict(
 					ip 		= self.values.loadbalancer.ip,
-					name 	= self.values.loadbalancer.name
+					name 	= self.values.loadbalancer.hostname
 				)
 
 			with open(CONFIG_FILE, 'w') as f: 
