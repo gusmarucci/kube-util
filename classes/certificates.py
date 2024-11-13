@@ -16,15 +16,15 @@ from 	classes.varglobal				import Global
 
 
 class Certificates(object):
-	
+
 	pkey_path: str	= None
 	csr_path: str	= None
 	cert_path: str	= None
 
 	def __init__(self) -> None:
-		self.pkey_path	= os.path.join(Global.base_path, "keys")
-		self.csr_path	= os.path.join(Global.base_path, "csr")
-		self.cert_path	= os.path.join(Global.base_path, "certs")
+		self.pkey_path	= os.path.join(Global.base_path, "pki", "keys")
+		self.csr_path	= os.path.join(Global.base_path, "pki", "csr")
+		self.cert_path	= os.path.join(Global.base_path, "pki", "crt")
 
 
 	def read_pkey(self, name: str) -> crypto.PKey | None:
@@ -307,7 +307,8 @@ class Certificates(object):
 		Create or update Certified Authority sign and certificates
 		
 		'''
-		print("Certificate CA")
+		# Verify the key
+		
 
 	
 	def API(self, new: bool = False) -> None:

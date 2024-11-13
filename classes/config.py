@@ -249,6 +249,7 @@ class Config(object):
 			print(f"Nome do hostname Worker {i + 1:02} .....: {v.hostname}")
 			print(f"IP do Worker {i + 1:02} ................: {v.ip}")
 
+		print("\n\n")
 
 	def yes_no(self, value: str) -> bool | None:
 		'''
