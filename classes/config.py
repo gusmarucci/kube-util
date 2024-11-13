@@ -251,6 +251,7 @@ class Config(object):
 
 		print("\n\n")
 
+
 	def yes_no(self, value: str) -> bool | None:
 		'''
 		yes_or_no

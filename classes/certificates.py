@@ -11,6 +11,7 @@
 #
 import 	os
 import	re
+import sys
 from 	OpenSSL							import crypto
 from 	classes.varglobal				import Global
 
@@ -137,11 +138,12 @@ class Certificates(object):
 			
 			return True
 
-		except:
+		except Exception as e:
+			print(f"Falha ao gerar csn de \"{name}\": {str(e)}")
 			return False
 
 
-	def read_certificate(self, name) -> None:
+	def read_certificate(self, name) -> crypto.X509:
 		'''
 		read_certificate
 		Le os dados do certificado
@@ -155,7 +157,7 @@ class Certificates(object):
 			return crypto.load_certificate(crypto.FILETYPE_PEM, cert_data) 
 		
 		except:
-			return False
+			return None
 
 	def gen_certificate(self, name:str, extensions: list = None, expires:int = 3) -> bool:
 		'''
@@ -184,21 +186,26 @@ class Certificates(object):
 			return False
 		
 		# Try to open CA cert
-		try:
-			ca_crt = self.read_certificate("ca")
-			if ca_crt is None:
-				raise
-		except:
-			print(f"Falha em abrir o certificado da Autoridade Certificadora")
-			return False
+		if not name.lower() == "ca":
+			try:
+				ca_crt = self.read_certificate("ca")
+				if ca_crt is None:
+					raise
+			except:
+				print(f"Falha em abrir o certificado da Autoridade Certificadora")
+				return False
 		
 		# Generate certificate
 		try:
 			cert = crypto.X509()
+			if not name.lower() == "ca":
+				cert.set_issuer(ca_crt.get_subject()) 
+			else:
+				cert.set_issuer(csr_req.get_subject())
+
 			cert.set_serial_number(1) 
 			cert.gmtime_adj_notBefore(0)
 			cert.gmtime_adj_notAfter(expires * 365 * 24 * 60 * 60)
-			cert.set_issuer(self.ca_crt.get_subject())
 			cert.set_subject(csr_req.get_subject()) 
 			cert.set_pubkey(csr_req.get_pubkey()) 
 			if extensions:
@@ -308,6 +315,33 @@ class Certificates(object):
 		
 		'''
 		# Verify the key
+		ca_key = os.path.join(self.pkey_path, "ca.key")
+		if not os.path.exists(ca_key):
+			print("Vamos primeiro criar uma chave privada para a Autoridade Certificadora...")
+			if not self.gen_pkey("ca"):
+				sys.exit(5)
+			print("Chave privada da Autoridade Certificadora gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para Autoridade Certificadora...")
+		if not self.gen_csr(
+			name 		= "ca", 
+			subject		= "/CN=KUBERNETES-CA/O=Kubernetes"
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando um certificado para Autoridade Certificadora...")
+		if not self.gen_certificate("ca"):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
+		print("Certificado da Autoridade Certificadora gerado com sucesso!")
+
+
+
+			
+
 		
 
 	
