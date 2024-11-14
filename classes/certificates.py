@@ -230,35 +230,40 @@ class Certificates(object):
 			return False
 
 	
-	def get_extensions(self, extension_preset: str, iplist: list) -> list:
+	def get_extensions(self, extension_preset: str, iplist: list = []) -> list:
 		'''
 		get_extensions
 		Retorna uma lista de extensões X.509
 
 		'''
-		# Define the IP list entries
+		# Define the IP list entries 
 		ip_entries = ", ".join([f"IP:{ip}" for ip in iplist]) if iplist else ""
 
-		preset = dict(
-			clientAuth = [
-				crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"), 
-				crypto.X509Extension(b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"), 
-				crypto.X509Extension(b"extendedKeyUsage", True, b"clientAuth")
-			],
-			serverAuth = [
-				crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"), 
-				crypto.X509Extension(b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"), 
-				crypto.X509Extension(b"extendedKeyUsage", True, b"serverAuth"), 
-				crypto.X509Extension(b"subjectAltName", False, f"DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, " f"DNS:kubernetes.default.svc.cluster, DNS:kubernetes.default.svc.cluster.local, " f"IP:127.0.0.1, {ip_entries}".encode() )
-			],
-			altName = [
-				crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"), 
-				crypto.X509Extension(b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"), 
-				crypto.X509Extension(b"subjectAltName", False, ip_entries.encode())
-			]
-		)
+		match extension_preset:
+			case "clientAuth":
+				return [
+					crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"), 
+					crypto.X509Extension(b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"), 
+					crypto.X509Extension(b"extendedKeyUsage", True, b"clientAuth")
+				]
+			
+			case "serverAuth":
+				return [
+					crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"), 
+					crypto.X509Extension(b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"), 
+					crypto.X509Extension(b"extendedKeyUsage", True, b"serverAuth"), 
+					crypto.X509Extension(b"subjectAltName", False, f"DNS:kubernetes, DNS:kubernetes.default, DNS:kubernetes.default.svc, " f"DNS:kubernetes.default.svc.cluster, DNS:kubernetes.default.svc.cluster.local, " f"IP:127.0.0.1, {ip_entries}".encode() )
+				]
+			
+			case "altName":
+				return [
+					crypto.X509Extension(b"basicConstraints", True, b"CA:FALSE"), 
+					crypto.X509Extension(b"keyUsage", True, b"nonRepudiation, digitalSignature, keyEncipherment"), 
+					crypto.X509Extension(b"subjectAltName", False, ip_entries.encode())
+				]
 
-		return preset.get(extension_preset, None)
+			case _:
+				return None
 	
 
 	def execute(self, args) -> None:
@@ -295,6 +300,9 @@ class Certificates(object):
 			case "scheduler":
 				self.scheduler(new)
 			
+			case "etcd":
+				self.etcd(new)
+			
 			# all certificates
 			case _:
 				self.all(new)
@@ -306,7 +314,13 @@ class Certificates(object):
 		Create or update all certificates necessary to install Kubernetes
 
 		'''
-		print("All Certificates")
+		self.ca()
+		self.API()
+		self.admin()
+		self.controller_manager()
+		self.proxy()
+		self.scheduler()
+		self.etcd()
 
 
 	def ca(self, new: bool = False) -> None:
@@ -345,8 +359,12 @@ class Certificates(object):
 		Create or update API sign and certificates
 		
 		'''
-		iplist = []
+		
+		#
+		# API Server certificate
+		#
 
+		iplist = []
 		try:
 			cidr 			= 	ipaddress.ip_network(Global.config.values.cidr.service)
 			api_server_ip 	= cidr[1]
@@ -389,6 +407,37 @@ class Certificates(object):
 		# Sign a certificate
 		print("Assinando um certificado para serviço API Server...")
 		if not self.gen_certificate("kube-apiserver", extensions):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
+
+
+		#
+		# API Server Kubelet Client (Certificate for Kubelet)
+		#
+
+		# Verify the key
+		api_kubelet_key = os.path.join(self.pkey_path, "apiserver-kubelet-client.key")
+		if not os.path.exists(api_kubelet_key):
+			print("Vamos primeiro criar uma chave privada para o serviço API Server para Kubelet Client...")
+			if not self.gen_pkey("apiserver-kubelet-client"):
+				sys.exit(5)
+			print("Chave privada do serviço API Server para Kubelet Client gerada.\n")
+
+		# Generate CSR
+		print("Criando CSR para serviço API Server para Kubelet Client...")
+				
+		extensions = self.get_extensions("clientAuth")
+		if not self.gen_csr(
+			name 		= "apiserver-kubelet-client", 
+			subject		= "/CN=kube-apiserver-kubelet-client/O=system:masters",
+			extensions	= extensions
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando um certificado para serviço API Server para Kubelet Client...")
+		if not self.gen_certificate("apiserver-kubelet-client", extensions):
 			sys.exit(5)
 		print("- Certificado gerado!\n")
 
@@ -459,7 +508,28 @@ class Certificates(object):
 		Create or update Proxy service user sign and certificates
 		
 		'''
-		print("Certificate Proxy")
+		# Verify the key
+		proxy_key = os.path.join(self.pkey_path, "kube-proxy.key")
+		if not os.path.exists(proxy_key):
+			print("Vamos primeiro criar uma chave privada para o serviço Proxy...")
+			if not self.gen_pkey("kube-proxy"):
+				sys.exit(5)
+			print("Chave privada do serviço Proxy gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para o certificado do serviço Proxy...")
+		if not self.gen_csr(
+			name 		= "kube-proxy", 
+			subject		= "/CN=system:kube-proxy/O=system:node-proxier"
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando o certificado do serviço Proxy...")
+		if not self.gen_certificate("kube-proxy"):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
 
 	
 	def scheduler(self, new: bool = False) -> None:
@@ -468,7 +538,65 @@ class Certificates(object):
 		Create or update Scheduler service user sign and certificates
 		
 		'''
-		print("Certificate Scheduler")
+		# Verify the key
+		sched_key = os.path.join(self.pkey_path, "kube-scheduler.key")
+		if not os.path.exists(sched_key):
+			print("Vamos primeiro criar uma chave privada para o serviço Scheduler...")
+			if not self.gen_pkey("kube-scheduler"):
+				sys.exit(5)
+			print("Chave privada do serviço Scheduler gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para o certificado do serviço Scheduler...")
+		if not self.gen_csr(
+			name 		= "kube-scheduler", 
+			subject		= "/CN=system:kube-scheduler/O=system:node-proxier"
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando o certificado do serviço Scheduler...")
+		if not self.gen_certificate("kube-scheduler"):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
 
 
+	def etcd(self, new: bool = False) -> None:
+		'''
+		etcd
+		Create or update etcd sign and certificates
+		
+		'''
+		iplist = [ "127.0.0.1" ]
+	
+		# Verify the key
+		kube_apiserver_key = os.path.join(self.pkey_path, "etcd.key")
+		if not os.path.exists(kube_apiserver_key):
+			print("Vamos primeiro criar uma chave privada para o serviço ETCD...")
+			if not self.gen_pkey("etcd"):
+				sys.exit(5)
+			print("Chave privada do serviço ETCD gerada.\n")
+				
+		# Generate CSR
+		print("Criando CSR para serviço ETCD...")
+		
+		# IP list
+		for item in Global.config.values.master_nodes:
+			iplist.append(item.ip)
+		
+		extensions = self.get_extensions("altName", iplist)
+		if not self.gen_csr(
+			name 		= "etcd", 
+			subject		= "/CN=etcd-server/O=Kubernetes",
+			extensions	= extensions
+		):
+			sys.exit(5)
+		print("- CSR gerado!\n")
+
+		# Sign a certificate
+		print("Assinando um certificado para serviço API Server...")
+		if not self.gen_certificate("etcd", extensions):
+			sys.exit(5)
+		print("- Certificado gerado!\n")
 

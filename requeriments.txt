@@ -1,2 +1,5 @@
+aiohttp==3.9.5
+asyncio==3.4.3
 pyOpenSSL==24.2.1
 PyYAML==6.0.2
+kubernetes==31.0.0
