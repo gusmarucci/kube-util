@@ -8,10 +8,12 @@
 #  Description..: Classe para envio de requisições HTTP
 #
 import	gettext
-from	classes.language		import Language
-from	classes.varglobal		import Global
-from 	classes.certificates	import Certificates
-from	classes.installer		import Installer
+
+from	classes.language				import Language
+from	classes.varglobal				import Global
+from 	classes.commands.configurations import Configurations
+from 	classes.commands.certificates	import Certificates
+from	classes.commands.installer		import Installer
 
 # Argument Parser Library
 gettext.gettext = Language().argparse
@@ -42,6 +44,10 @@ class ArgParser(object):
 				parser 		= command_parser.add_parser("cert", help="Comandos relacionados a manutenção dos certificados digitais"),
 				sub_parser	= None
 			),
+			config	= dict(
+				parser		= command_parser.add_parser("config", help="Comandos relacionados a configuração dos serviços"),
+				sub_parser  = None
+			),
 			install = dict(
 				parser 		= command_parser.add_parser("install", help="Comandos relacionados a instalação dos serviços"),
 				sub_parser	= None
@@ -62,6 +68,13 @@ class ArgParser(object):
 
 		Global.commands["cert"]['parser'].add_argument("--new", action="store_true")
 		Global.commands["cert"]['parser'].add_argument("--update", action="store_true")
+
+
+		# Config Services
+		Global.commands["config"]['parser'].set_defaults(func=Configurations().execute)	
+		Global.commands["config"]['parser'].add_argument("--new", action="store_true")
+		Global.commands["config"]['parser'].add_argument("--update", action="store_true")
+
 		
 
 		# Install Services
