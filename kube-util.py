@@ -38,7 +38,4 @@ if __name__ == "__main__":
 	Config.install()
 
 	# Parse the arguments
-	ArgParser()	
-
-
-	
+	ArgParser()

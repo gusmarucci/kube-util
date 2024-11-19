@@ -11,7 +11,7 @@
 
 import 	sys
 
-from	classes.config				import Cluster, InstanceMachine, CIDR
+from	classes.config				import Cluster
 from 	classes.varglobal			import Global
 from 	classes.kubernetes			import Kubernetes
 
@@ -50,7 +50,11 @@ class Configurations(object):
 				self.encrypt(new)
 				
 			case _:
-				pass
+				self.admin(new)
+				self.controller_manager(new)
+				self.proxy(new)
+				self.scheduler(new)
+				self.encrypt(new)
 
 
 	def admin(self, new: bool) -> None:
