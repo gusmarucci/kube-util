@@ -17,13 +17,6 @@ from	enum 				import Enum
 from 	classes.varglobal	import Global
 
 
-class UserType(Enum):
-	ControllerManager 	= "controller-manager"
-	Proxy				= "proxy"
-	Scheduler			= "scheduler"
-	Admin				= "admin"
-	
-
 class Kubernetes(object):
 
 	pkey_path: str	= None
@@ -71,14 +64,13 @@ class Kubernetes(object):
 			cluster			= param['cluster']
 			user			= param['user']
 			certificate		= param['certificate']
-			embended		= param['embended']		if 'embended' in param 	else False
+			embedded		= param['embedded']		if 'embedded' in param 	else False
 			
 			output = {
 				"apiVersion": "v1",
 				"clusters": [
 					{
 						"cluster": {
-							"certificate-authority": "/var/lib/kubernetes/pki/ca.crt",
 							"server": server
 						},
 						"name": cluster
@@ -104,7 +96,7 @@ class Kubernetes(object):
 				]
 			}
 
-			if embended:
+			if embedded:
 				ca		= self.read_certificate_file(os.path.join(self.cert_path, "ca.crt"))
 				cert	= self.read_certificate_file(os.path.join(self.cert_path, f"{certificate}.crt"))
 				key		= self.read_certificate_file(os.path.join(self.pkey_path, f"{certificate}.key"))
@@ -119,6 +111,7 @@ class Kubernetes(object):
 
 
 			file = os.path.join(Global.base_path, "kubeconfig", f"kube-{certificate}.kubeconfig")
+	
 			with open(file, "w") as f:
 				yaml.dump(output, f, default_flow_style=False)
 
@@ -133,3 +126,39 @@ class Kubernetes(object):
 			return False
 
 
+	def set_encrypt(self) -> bool:
+		'''
+		set_encrypt
+
+		'''
+		try:
+			encrypt = base64.b64encode(os.urandom(32)).decode('utf-8')
+			output = {
+				'kind': 'EncryptionConfig',
+				'apiVersion': 'v1',
+				'resources': [
+					{
+						'resources': ['secrets'],
+						'providers': [
+							{
+								'aescbc': {
+									'keys': [
+										{'name': 'key1', 'secret': f'{encrypt}'}
+									]
+								}
+							},
+							{'identity': {}}
+						]
+					}
+				]
+			}
+
+			file = os.path.join(Global.base_path, "kubeconfig", f"encryption-config.yaml")
+
+			with open(file, "w") as f:
+				yaml.dump(output, f, default_flow_style=False)
+			
+			return True
+		
+		except:
+			return False

@@ -56,7 +56,6 @@ class ArgParser(object):
 
 		# Certificate
 		Global.commands["cert"]['parser'].set_defaults(func=Certificates().execute)
-
 		Global.commands["cert"]['sub_parser'] = Global.commands['cert']['parser'].add_subparsers(dest='type')
 		Global.commands["cert"]['sub_parser'].add_parser("all",						help="Cria ou atualiza todos os certificados")
 		Global.commands["cert"]['sub_parser'].add_parser("api",						help="Cria ou atualiza o certificado do serviço de API")
@@ -69,14 +68,19 @@ class ArgParser(object):
 		Global.commands["cert"]['parser'].add_argument("--new", action="store_true")
 		Global.commands["cert"]['parser'].add_argument("--update", action="store_true")
 
-
 		# Config Services
 		Global.commands["config"]['parser'].set_defaults(func=Configurations().execute)	
+		Global.commands["config"]['sub_parser'] = Global.commands['config']['parser'].add_subparsers(dest='type')
+		Global.commands["config"]['sub_parser'].add_parser("all",					help="Cria ou atualiza todas as configurações")
+		Global.commands["config"]['sub_parser'].add_parser("admin",					help="Cria ou atualiza a configuração do usuário admin")
+		Global.commands["config"]['sub_parser'].add_parser("controller-manager",	help="Cria ou atualiza a configuração do serviço Controller Manager")
+		Global.commands["config"]['sub_parser'].add_parser("proxy",					help="Cria ou atualiza a configuração do serviço Proxy dos Worker node")
+		Global.commands["config"]['sub_parser'].add_parser("scheduler",				help="Cria ou atualiza a configuração do serviço de Scheduler")
+		Global.commands["config"]['sub_parser'].add_parser("encrypt",				help="Cria ou atualiza a configuração de chave de criptografia")
+		
 		Global.commands["config"]['parser'].add_argument("--new", action="store_true")
 		Global.commands["config"]['parser'].add_argument("--update", action="store_true")
-
 		
-
 		# Install Services
 		Global.commands["install"]['parser'].set_defaults(func=Installer().execute)	
 
